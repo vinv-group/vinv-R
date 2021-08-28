@@ -6,7 +6,11 @@ prettify <- function(tree_status) {
 
   prettified <- list()
 
+  id <- c()
+
   for ( key in names(tree_status) ) {
+
+    id <- append(id, key)
 
     prettified[[length(prettified)+1]] <- list(
       id = key,
@@ -19,18 +23,58 @@ prettify <- function(tree_status) {
       height = unlist(tree_status[[key]][4]),
       trunk = tree_status[[key]][5],
       crown = tree_status[[key]][6],
-      birth = as.Date(unlist(tree_status[[key]][7])),
-      image = as.list(unlist(tree_status[[key]][8][1]))
+      birth = if (is.null(unlist(tree_status[[key]][7])) ) ? NULL : as.Date(unlist(tree_status[[key]][7])),
+      image = if (is.null(unlist(tree_status[[key]][8])) ) ? list() : as.list(unlist(tree_status[[key]][8][1]))
     )
 
   }
 
+  return ( data.frame(
+    id
+  ) )
+
   return ( prettified )
 }
 
-import <- function( file, pretty = TRUE ){
+prettifyFd <- function(tree_status) {
+
+  id <- c()
+  species <- c()
+  dbh <- c()
+  height <- c()
+  birth <- as.Date(c())
+
+
+  for ( key in names(tree_status) ) {
+
+    id <- append(id, key)
+    species <- append(species, unlist(tree_status[[key]][2]))
+    dbh <- append(dbh, unlist(tree_status[[key]][3]))
+    height <- append(height, unlist(tree_status[[key]][4]))
+    birth <- append(birth, unlist(tree_status[[key]][7]))
+
+  }
+
+  df <- data.frame(
+    id,
+    species,
+    dbh,
+    height,
+    birth
+  )
+
+  return ( df )
+
+}
+
+fromFile <- function( file, pretty = TRUE ){
 
   jsonStr <- readr::read_file( file )
+
+  return ( fromString(jsonStr, pretty) );
+
+}
+fromString <- function( jsonStr, pretty = TRUE ){
 
   json <- jsonlite::fromJSON( jsonStr )
 
@@ -54,7 +98,7 @@ import <- function( file, pretty = TRUE ){
                                   error = TRUE, engine = "imjv")
 
       if(pretty == TRUE)
-        json$inventory$tree_status <- prettify( json$inventory$tree_status )
+        json$inventory$tree_status <- prettifyFd( json$inventory$tree_status )
 
       return ( json );
     }

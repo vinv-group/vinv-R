@@ -1,7 +1,7 @@
 Package: vinvSchema
 Type: Package
 Title: Creates data frame from .vinv files
-Version: 0.0.1
+Version: 0.0.2
 Author: Gerrit Balindt
 Maintainer: vinv-group <support@vinv.io>
 Description: More about what it does (maybe more than one line)
