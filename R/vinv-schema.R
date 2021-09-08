@@ -1,44 +1,15 @@
 #' @import jsonvalidate
 #' @import rjson
 #' @import readr
-
-prettify <- function(tree_status) {
-
-  prettified <- list()
-
-  id <- c()
-
-  for ( key in names(tree_status) ) {
-
-    id <- append(id, key)
-
-    prettified[[length(prettified)+1]] <- list(
-      id = key,
-      location = list(
-        coordinates = list(tree_status[[key]][[1]][[1]][1], tree_status[[key]][[1]][[1]][2]),
-        accuracy = unlist(tree_status[[key]][[1]][2])
-      ),
-      species = unlist(tree_status[[key]][2]),
-      dbh = unlist(tree_status[[key]][3]),
-      height = unlist(tree_status[[key]][4]),
-      trunk = tree_status[[key]][5],
-      crown = tree_status[[key]][6],
-      birth = if (is.null(unlist(tree_status[[key]][7])) ) ? NULL : as.Date(unlist(tree_status[[key]][7])),
-      image = if (is.null(unlist(tree_status[[key]][8])) ) ? list() : as.list(unlist(tree_status[[key]][8][1]))
-    )
-
-  }
-
-  return ( data.frame(
-    id
-  ) )
-
-  return ( prettified )
-}
+#' @import sf
 
 prettifyFd <- function(tree_status) {
 
   id <- c()
+  longitude <- as.double(c())
+  latitude <- as.double(c())
+  altitude <- as.double(c())
+  accuracy <- as.double(c())
   species <- c()
   dbh <- c()
   height <- c()
@@ -47,16 +18,25 @@ prettifyFd <- function(tree_status) {
 
   for ( key in names(tree_status) ) {
 
+
     id <- append(id, key)
+    longitude <- append(longitude, tree_status[[key]][[1]][[1]][1] )
+    latitude <- append(latitude, tree_status[[key]][[1]][[1]][2] )
+    altitude <- append (altitude, tree_status[[key]][[1]][[1]][3])
+    accuracy <- append (accuracy, tree_status[[key]][[1]][[2]])
+
     species <- append(species, unlist(tree_status[[key]][2]))
     dbh <- append(dbh, unlist(tree_status[[key]][3]))
     height <- append(height, unlist(tree_status[[key]][4]))
     birth <- append(birth, unlist(tree_status[[key]][7]))
-
   }
 
   df <- data.frame(
     id,
+    longitude,
+    latitude,
+    altitude,
+    accuracy,
     species,
     dbh,
     height,
@@ -65,6 +45,63 @@ prettifyFd <- function(tree_status) {
 
   return ( df )
 
+}
+prettifyPlotFd <- function(plot){
+
+
+  vinvPolygonsAttributes <- data.frame()
+  spatialPolygons <- list()
+
+  vinvCircle <- data.frame(
+    id = character(),
+    longitude <- as.double(c()),
+    latitude <- as.double(c()),
+    altitude <- as.double(c()),
+    accuracy <- as.double(c()),
+    radius <- as.double(c())
+  )
+
+  for ( key in names(plot) ) {
+
+
+    if(typeof(plot[key][[1]][[1]][[1]][1]) == 'list'){ # is polygon
+
+      lon <- sapply(plot[key][[1]][[1]], function(e){
+        as.numeric(e[[1]][1])
+      })
+      lat <- sapply(plot[key][[1]][[1]], function(e){
+        as.numeric(e[[1]][2])
+      })
+
+      polys <- sp::Polygons(list(sp::Polygon(cbind(lon,lat))), key)
+      spatialPolygons <- append(spatialPolygons, polys)
+
+      # polygon <- sp::Polygon(coords = cbind(lat, lon))
+
+      vinvPolygonsAttributes <- rbind(vinvPolygonsAttributes, data.frame(
+        ID = key
+      ))
+
+
+    }else if(typeof(plot[key][[1]][[1]][[1]][1]) == 'double'){ # is circle
+      # vinvCircle$id <- append(vinvCircle$id, key)
+
+        vinvCircle <- rbind(vinvCircle, data.frame(
+          id = key,
+          longitude = as.double(plot[key][[1]][[1]][[1]][1]),
+          latitude = as.double(plot[key][[1]][[1]][[1]][2]),
+          altitude = as.double(plot[key][[1]][[1]][[1]][3]),
+          accuracy = as.double(plot[key][[1]][[1]][[2]][1]),
+          radius = as.double(plot[key][[1]][2])
+        )
+      )
+    }
+  }
+
+  return ( list(
+    polygons =  sp::SpatialPolygons(spatialPolygons),
+    circles = vinvCircle
+  ) )
 }
 
 fromFile <- function( file, pretty = TRUE ){
@@ -97,8 +134,16 @@ fromString <- function( jsonStr, pretty = TRUE ){
       jsonvalidate::json_validate(jsonStr, schema, verbose = TRUE, greedy = TRUE,
                                   error = TRUE, engine = "imjv")
 
+      print( exists("json$areas") )
+
       if(pretty == TRUE)
         json$inventory$tree_status <- prettifyFd( json$inventory$tree_status )
+
+      if(pretty == TRUE)
+        json$areas$plots <- prettifyPlotFd( json$areas$plots )
+
+      if(pretty == TRUE)
+        json$areas$area_status <- prettifyPlotFd( json$areas$area_status )
 
       return ( json );
     }
