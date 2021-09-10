@@ -1,0 +1,13 @@
+name: vinv-R-example
+title: vinv-R-example
+username:
+account: gruenecho
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4615848
+bundleId: 5018733
+url: https://gruenecho.shinyapps.io/vinv-R-example/
+when: 1631259629.26524
+lastSyncTime: 1631259629.26526
+asMultiple: FALSE
+asStatic: FALSE
